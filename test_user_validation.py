@@ -1,59 +1,134 @@
-import re
-from datetime import datetime
+import unittest
+from user_validation import UserValidation
 
-class UserValidation:
-    @staticmethod
-    def validate_email(email: str) -> bool:
-        """Validate the format of an email address."""
-        if not email:
-            return False
-        pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-        return re.fullmatch(pattern, email) is not None
 
-    @staticmethod
-    def validate_username(username: str) -> bool:
-        """Validates username (3–20 chars, letters/numbers/underscore only)."""
-        if not username:
-            return False
-        pattern = r'^[a-zA-Z0-9_]{3,20}$'
-        return re.fullmatch(pattern, username) is not None
+class TestEmailValidation(unittest.TestCase):
+    def test_valid_email(self):
+        self.assertTrue(UserValidation.validate_email("user@example.com"))
 
-    @staticmethod
-    def validate_phone_number(phone: str) -> bool:
-        """Validates Egyptian phone number (starts with 010, 011, 012, or 015 — 11 digits total or +20 prefix)."""
-        if not phone:
-            return False
-        pattern = r'^(?:\+?20|0)?(10|11|12|15)\d{8}$'
-        return re.fullmatch(pattern, phone) is not None
+    def test_missing_at_symbol(self):
+        self.assertFalse(UserValidation.validate_email("userexample.com"))
 
-    @staticmethod
-    def validate_national_id(national_id: str) -> bool:
-        """Validates Egyptian national ID (14 digits with valid date and governorate code)."""
-        if not national_id or not re.fullmatch(r'\d{14}', national_id):
-            return False
+    def test_missing_domain(self):
+        self.assertFalse(UserValidation.validate_email("user@"))
 
-        century = national_id[0]
-        year = int(national_id[1:3])
-        month = int(national_id[3:5])
-        day = int(national_id[5:7])
-        governorate = national_id[7:9]
+    def test_invalid_tld(self):
+        self.assertFalse(UserValidation.validate_email("user@mail.c"))
 
-        if century == '2':
-            year += 1900
-        elif century == '3':
-            year += 2000
-        else:
-            return False
+    def test_email_with_subdomain(self):
+        self.assertTrue(UserValidation.validate_email("user@mail.company.com"))
 
-        try:
-            datetime(year, month, day)
-        except ValueError:
-            return False
+    def test_email_with_special_characters(self):
+        self.assertTrue(UserValidation.validate_email("ramy.gomaa_21@mail.co"))
 
-        valid_governorates = {
-            '01', '02', '03', '04', '11', '12', '13', '14', '15', '16', '17',
-            '18', '19', '21', '22', '23', '24', '25', '26', '27', '28', '29',
-            '31', '32', '33', '34', '35', '88'
-        }
+    def test_uppercase_email(self):
+        self.assertTrue(UserValidation.validate_email("USER@MAIL.COM"))
 
-        return governorate in valid_governorates
+    def test_email_with_space(self):
+        self.assertFalse(UserValidation.validate_email("user name@mail.com"))
+
+    def test_empty_email(self):
+        self.assertFalse(UserValidation.validate_email(""))
+
+    def test_null_input(self):
+        self.assertFalse(UserValidation.validate_email(None))
+
+
+class TestUsernameValidation(unittest.TestCase):
+    def test_valid_username(self):
+        self.assertTrue(UserValidation.validate_username("ramy_gomaa"))
+
+    def test_username_too_short(self):
+        self.assertFalse(UserValidation.validate_username("ab"))
+
+    def test_username_too_long(self):
+        self.assertFalse(UserValidation.validate_username("ramygomaaisaverylongusername"))
+
+    def test_username_with_spaces(self):
+        self.assertFalse(UserValidation.validate_username("ramy gomaa"))
+
+    def test_username_with_symbols(self):
+        self.assertFalse(UserValidation.validate_username("ramy@123"))
+
+    def test_username_with_digits(self):
+        self.assertTrue(UserValidation.validate_username("ramy123"))
+
+    def test_empty_username(self):
+        self.assertFalse(UserValidation.validate_username(""))
+
+    def test_null_input(self):
+        self.assertFalse(UserValidation.validate_username(None))
+
+
+class TestPhoneNumberValidation(unittest.TestCase):
+    def test_valid_vodafone_number(self):
+        self.assertTrue(UserValidation.validate_phone_number("01012345678"))
+
+    def test_valid_orange_number(self):
+        self.assertTrue(UserValidation.validate_phone_number("01234567890"))
+
+    def test_valid_etisalat_number(self):
+        self.assertTrue(UserValidation.validate_phone_number("01198765432"))
+
+    def test_valid_we_number(self):
+        self.assertTrue(UserValidation.validate_phone_number("01555555555"))
+
+    def test_valid_vodafone_with_country_code(self):
+        self.assertTrue(UserValidation.validate_phone_number("201012345678"))
+
+    def test_valid_orange_with_country_code(self):
+        self.assertTrue(UserValidation.validate_phone_number("201234567890"))
+
+    def test_invalid_prefix(self):
+        self.assertFalse(UserValidation.validate_phone_number("01812345678"))
+
+    def test_too_short(self):
+        self.assertFalse(UserValidation.validate_phone_number("0101234567"))
+
+    def test_too_long(self):
+        self.assertFalse(UserValidation.validate_phone_number("010123456789"))
+
+    def test_contains_characters(self):
+        self.assertFalse(UserValidation.validate_phone_number("01012abc678"))
+
+    def test_empty_phone_number(self):
+        self.assertFalse(UserValidation.validate_phone_number(""))
+
+    def test_null_input(self):
+        self.assertFalse(UserValidation.validate_phone_number(None))
+
+
+class TestNationalIDValidation(unittest.TestCase):
+    def test_valid_national_id(self):
+        self.assertTrue(UserValidation.validate_national_id("29812251234567"))
+
+    def test_too_short(self):
+        self.assertFalse(UserValidation.validate_national_id("2981225123456"))
+
+    def test_too_long(self):
+        self.assertFalse(UserValidation.validate_national_id("298122512345678"))
+
+    def test_contains_letters(self):
+        self.assertFalse(UserValidation.validate_national_id("2981225AB34567"))
+
+    def test_invalid_century_code(self):
+        self.assertFalse(UserValidation.validate_national_id("19812251234567"))
+
+    def test_invalid_month(self):
+        self.assertFalse(UserValidation.validate_national_id("29813251234567"))
+
+    def test_invalid_day(self):
+        self.assertFalse(UserValidation.validate_national_id("29812323234567"))
+
+    def test_invalid_governorate_code(self):
+        self.assertFalse(UserValidation.validate_national_id("29812380034567"))
+
+    def test_empty_input(self):
+        self.assertFalse(UserValidation.validate_national_id(""))
+
+    def test_null_input(self):
+        self.assertFalse(UserValidation.validate_national_id(None))
+
+
+if __name__ == "__main__":
+    unittest.main()
